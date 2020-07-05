@@ -1,0 +1,165 @@
+version: '3.8'
+
+services:
+
+  elastic-books:
+    image: elasticsearch:7.7.1
+    container_name: elastic-books
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - gutenberg:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+    networks:
+      - gutenbergnet
+
+  config-server:
+    image: gutenberg/config-server
+    # edit to match your own filesystem
+    volumes:
+      - type: bind
+        source: /home/dominique/Documents/config-repo
+        target: /tmp/config-repo
+    ports:
+      - "8888:8888"
+    environment:
+      - EUREKASERVER_URI=http://eurekaserver:8761/eureka/
+      - EUREKASERVER_HOST=eurekaserver
+      - EUREKASERVER_PORT=8761
+    networks:
+      - gutenbergnet
+
+  eurekaserver:
+    image: gutenberg/eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - gutenbergnet
+
+  book-service:
+    image: gutenberg/book-server
+    ports:
+      - 8081:8081
+    environment:
+      - EUREKASERVER_URI=http://eurekaserver:8761/eureka/
+      - EUREKASERVER_HOST=eurekaserver
+      - EUREKASERVER_PORT=8761
+      - GUTENBERG_CONFIG_URI=http://config-server:8888
+      - CONFIGSERVER_HOST=config-server
+      - CONFIGSERVER_PORT=8888
+      - ELASTICSERVER_HOST=elastic-books
+      - ELASTICSERVER_PORT=9200
+    networks:
+      - gutenbergnet
+
+  review-service:
+    image: gutenberg/review-server
+    ports:
+      - 8082:8082
+    environment:
+      - EUREKASERVER_URI=http://eurekaserver:8761/eureka/
+      - EUREKASERVER_HOST=eurekaserver
+      - EUREKASERVER_PORT=8761
+      - GUTENBERG_CONFIG_URI=http://config-server:8888
+      - CONFIGSERVER_HOST=config-server
+      - CONFIGSERVER_PORT=8888
+      - ELASTICSERVER_HOST=elastic-books
+      - ELASTICSERVER_PORT=9200
+    networks:
+      - gutenbergnet  
+
+  user-service:
+    image: gutenberg/user-server
+    ports:
+      - 8084:8084
+    environment:
+      - EUREKASERVER_URI=http://eurekaserver:8761/eureka/
+      - EUREKASERVER_HOST=eurekaserver
+      - EUREKASERVER_PORT=8761
+      - GUTENBERG_CONFIG_URI=http://config-server:8888
+      - CONFIGSERVER_HOST=config-server
+      - CONFIGSERVER_PORT=8888
+      - ELASTICSERVER_HOST=elastic-books
+      - ELASTICSERVER_PORT=9200
+    networks:
+      - gutenbergnet
+
+  order-service:
+    image: gutenberg/order-server
+    ports:
+      - 8083:8083
+    environment:
+      - EUREKASERVER_URI=http://eurekaserver:8761/eureka/
+      - EUREKASERVER_HOST=eurekaserver
+      - EUREKASERVER_PORT=8761
+      - GUTENBERG_CONFIG_URI=http://config-server:8888
+      - CONFIGSERVER_HOST=config-server
+      - CONFIGSERVER_PORT=8888
+      - ELASTICSERVER_HOST=elastic-books
+      - ELASTICSERVER_PORT=9200
+    networks:
+      - gutenbergnet
+
+
+  gateway-service:
+    image: gutenberg/gateway-server
+    ports:
+      - 5555:5555
+    environment:
+      - BOOKSERVER_URI=http://book-service:8081
+      - BOOKSERVER_HOST=book-service
+      - BOOKSERVER_PORT=8081
+      - REVIEWSERVER_URI=http://review-service:8082
+      - REVIEWSERVER_HOST=review-service
+      - REVIEWSERVER_PORT=8082
+      - ORDERSERVER_URI=http://order-service:8083
+      - ORDERSERVER_HOST=order-service
+      - ORDERSERVER_PORT=8083
+      - USERSERVER_URI=http://user-service:8084
+      - USERSERVER_HOST=user-service
+      - USERSERVER_PORT=8084
+      - EUREKASERVER_URI=http://eurekaserver:8761/eureka/
+      - EUREKASERVER_HOST=eurekaserver
+      - EUREKASERVER_PORT=8761
+      - GUTENBERG_CONFIG_URI=http://config-server:8888
+      - CONFIGSERVER_HOST=config-server
+      - CONFIGSERVER_PORT=8888
+    networks:
+      - gutenbergnet
+
+  frontend-server:
+    image: gutenberg/frontend-server
+    ports:
+      - 8080:8080
+    environment:
+      - GUTENBERG_CONFIG_URI=http://config-server:8888
+      - CONFIGSERVER_HOST=config-server
+      - CONFIGSERVER_PORT=8888
+      - GATEWAYSERVER_HOST=gateway-service
+      - GATEWAYSERVER_PORT=5555
+      - BOOKSERVER_URI=http://gateway-service:5555/books
+      - REVIEWSERVER_URI=http://gateway-service:5555/reviews
+      - ORDERSERVER_URI=http://gateway-service:5555/orders
+      - USERSERVER_URI=http://gateway-service:5555/users
+    
+    networks:
+      - gutenbergnet
+
+
+volumes:
+  gutenberg:
+    external:
+      name: gutenberg
+  
+networks:
+  gutenbergnet:
+    external: true
+      
+

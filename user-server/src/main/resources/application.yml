@@ -1,0 +1,25 @@
+#server:
+#  port: 8084
+#  servlet:
+#    context-path:
+         
+#eureka:
+#  instance:
+#    prefer-ip-address: true
+#  client:
+#    register-with-eureka: true
+#    fetch-registry: true
+#    service-url:
+#      defaultZone: ${EUREKASERVER_URI}
+
+#spring:
+#  cloud:
+#    config:
+#      uri : ${GUTENBERG_CONFIG_URI}
+
+#baseUsersUrl: user-server:8084/findById/" 
+
+#elasticsearch-host: ${ELASTICSERVER_HOST}
+#elasticsearch-port-one: 9200
+#elasticsearch-port-two: 9201
+#elasticsearch-scheme: "http"
